@@ -1,12 +1,151 @@
-// ReSharper disable all CheckNamespace
-// Please ensure all the tests are contained within the same namespace
+import cv2
+from PyQt5 import QtGui
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QWidget, QGraphicsScene, QListWidgetItem, QApplication
+from ultralytics import YOLO
 
-[TestFixture]
-internal class Test
-{
-    [Test]
-    public void Test1()
-    {
-        Assert.Fail("Tests are not implemented");
-    }
-}
+from UI import Ui_Dialog_example
+from calculate_func import result_calculate_and_judge
+from file_IO import read_image, read_yolo_model, get_icons_file_path
+from product_class import Product
+from result_display import draw_result_image
+
+
+class Example_Dialog_Class(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.ui = Ui_Dialog_example()
+        self.ui.setupUi(self)
+
+        self.original_image = None
+        self.YOLO_model = None
+        self.product = None
+        self.results = None
+        self.result_image = None
+        self.test_image_list = None
+        self.current_image_index = 0
+
+        self.graphics_scene = QGraphicsScene()  # 场景：负责承载图片显示的内容
+        self.test_image_list = read_image()
+
+    def accept(self):
+        """检测按钮点击后的事件逻辑"""
+        # 读取图片
+        self.get_image()
+
+        # 加载YOLO模型
+        self.load_YOLO_model()
+
+        # 图像推理检测
+        self.image_detect()
+
+        # 检测结果计算及判定
+        self.result_calculate()
+
+        # 结果显示
+        self.result_display()
+
+    def get_image(self):
+        self.original_image = self.test_image_list[self.current_image_index]
+
+        if self.ui.continuous_checkBox.isChecked():
+            if self.current_image_index < len(self.test_image_list) - 1:
+                self.current_image_index += 1
+
+    def load_YOLO_model(self):
+        self.YOLO_model = read_yolo_model()
+
+    def image_detect(self):
+        self.results = self.YOLO_model(self.original_image)
+
+    def result_calculate(self):
+        self.product = Product(name='发动机缸盖', original_image=self.original_image, results=self.results)
+        result_calculate_and_judge(self.product)
+
+    def result_display(self):
+        # 绘制并显示结果图像
+        draw_result_image(self.product)
+        self.show_result_image(self.product)
+
+        # 显示结果标签
+        self.show_result_label(self.product)
+
+    def show_result_image(self, product):
+        """绘制检测结果图像并显示"""
+        # 转为QPixmap对象
+        pixmap = QPixmap(product.result_image)
+
+        # 图片自适应视图大小，不变形+高清
+        pixmap = pixmap.scaled(
+            self.ui.graphicsView.size(),  # 缩放目标尺寸：视图的大小
+            Qt.KeepAspectRatio,  # 保持宽高比
+            Qt.SmoothTransformation  # 平滑缩放，抗锯齿
+        )
+
+        # 关键步骤1：将像素图添加到场景中
+        self.graphics_scene.clear()  # 清空场景，防止重复加载图片叠加
+        self.graphics_scene.addPixmap(pixmap)
+        # 关键步骤2：给视图设置要展示的场景
+        self.ui.graphicsView.setScene(self.graphics_scene)
+
+        # 可选优化：取消视图的滚动条（图片尺寸小于窗口时，隐藏滚动条）
+        self.ui.graphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.ui.graphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+    def show_result_label(self, product):
+        self.ui.result_listWidget.clear()
+        self.ui.result_label.clear()
+
+        # 遍历部件模板检测框，根据各检测框的判定结果绘制结果框
+        for component_box in product.component_box_list:
+            # 创建结果列表标签
+            item = QListWidgetItem()
+            item.setText(component_box.result_label)
+
+            # 创建字体对象，设置字号（可根据需要调整数值，比如14、16、18等）
+            font = QtGui.QFont()
+            font.setPointSize(16)  # 字号设置为16（默认通常是9-12）
+            font.setBold(True)  # 可选：设置文字加粗，增强视觉效果
+            item.setFont(font)  # 将字体应用到列表项
+
+            # 根据结果OK/NG设置项目背景颜色
+            if component_box.judgement == True:
+                item.setBackground(QtGui.QColor("green"))
+            elif component_box.judgement == False:
+                item.setBackground(QtGui.QColor("red"))
+
+            self.ui.result_listWidget.addItem(item)
+
+        if product.judgement == True:
+            result_judgement_pic_path = get_icons_file_path("OK.png")
+        elif product.judgement == False:
+            result_judgement_pic_path = get_icons_file_path("NG.png")
+
+        self.ui.result_label.setPixmap(QtGui.QPixmap(result_judgement_pic_path))
+
+        # 强制立即刷新[^2]
+        QApplication.processEvents()
+
+
+if __name__ == "__main__":
+    # img_path = r'img\1_发动机缸盖_model_pic_1.jpg'
+    # YOLO_model_path = r'YOLO_model\1_发动机缸盖_component_model.pt'
+    img_path = r'../img/bee.jpg'
+    YOLO_model_path = r'../YOLO_model/yolov8n.pt'
+
+    # 调用YOLO检测图片
+    model = YOLO(YOLO_model_path)
+    results = model(img_path,save=True,show=True)
+    detected_img = results[0].plot()
+
+    # 手动指定缩放后的目标尺寸（宽，高）
+    target_width = 800
+    target_height = 600
+
+    # 缩放图片
+    resized_img = cv2.resize(detected_img, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
+    cv2.imshow("YOLO 检测结果", resized_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

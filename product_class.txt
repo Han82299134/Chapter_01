@@ -1,12 +1,64 @@
-// ReSharper disable all CheckNamespace
-// Please ensure all the tests are contained within the same namespace
+from file_IO import read_data_from_json
 
-[TestFixture]
-internal class Test
-{
-    [Test]
-    public void Test1()
-    {
-        Assert.Fail("Tests are not implemented");
-    }
-}
+component_box_path = r'../YOLO_model/1_发动机缸盖_component_box.json'
+
+
+class Product():
+    def __init__(self, name, original_image, results):
+        self.name = name
+        self.image = original_image
+        self.result_image = None
+        self.results = results
+        self.judgement = True
+        self.component_box_list = []
+
+        # 在实例化时读取外部JSON文件初始化零部件对象
+        self.read_component_model_box_file()
+
+    # 从外部JSON文件读取零部件位置的标准模板
+    def read_component_model_box_file(self):
+        detect_box_datas = read_data_from_json(component_box_path)
+
+        for detect_box in detect_box_datas:
+            new_component = Component_Model_Box(
+                detectID = detect_box["检测框编号"],
+                classID = detect_box["目标类型编号"],
+                name = detect_box["目标类型名称"],
+                confid_accept = detect_box["接受置信度"],
+                x_scale = detect_box["x向缩放比例"],
+                y_scale = detect_box["y向缩放比例"],
+                xywhr_model = detect_box["xywhr"]
+            )
+            self.component_box_list.append(new_component)
+
+class Component_Model_Box():
+    def __init__(self, detectID, classID, name, confid_accept, x_scale, y_scale, xywhr_model):
+        self.detectID = detectID
+        self.classID = classID
+        self.name = name
+        self.confid_accept = confid_accept
+        self.x_scale = x_scale
+        self.y_scale = y_scale
+        self.xywhr_model = xywhr_model
+        self.judgement = False
+        self.result_label = None
+
+    def __str__(self):
+        # 拼接所有属性，格式可自定义，清晰易懂即可
+        return (f"Component_Model_Box:\n"
+                f"  检测框编号(detectID): {self.detectID}\n"
+                f"  目标类型编号(classID): {self.classID}\n"
+                f"  目标类型名称(name): {self.name}\n"
+                f"  接受置信度(confid_accept): {self.confid_accept}\n"
+                f"  x向缩放比例(x_scale): {self.x_scale}\n"
+                f"  y向缩放比例(y_scale): {self.y_scale}\n"
+                f"  xywhr模型参数(xywhr_model): {self.xywhr_model}\n"
+                f"  判定结果(judgement): {self.judgement}")
+
+if __name__ == "__main__":
+    product = Product("发动机缸盖", "original_image", "detect_result")
+    print("产品名称：", product.name)
+    print("=" * 50, "直接打印 component_box_list（列表格式）", "=" * 50)
+    for index, component in enumerate(product.component_box_list, start=1):
+        print(f"\n第 {index} 个零部件：")
+        print(component)

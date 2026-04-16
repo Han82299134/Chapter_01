@@ -1,12 +1,90 @@
-// ReSharper disable all CheckNamespace
-// Please ensure all the tests are contained within the same namespace
+def result_calculate_and_judge(product):
+    # 遍历模型检测结果，对每个检出目标进行判定
+    for result in product.results:
+        # 获取检测到的目标框的信息
+        boxes = result.boxes
 
-[TestFixture]
-internal class Test
-{
-    [Test]
-    public void Test1()
-    {
-        Assert.Fail("Tests are not implemented");
+        # 遍历获取所有检测到的目标检测框
+        for box in boxes:
+            clsIndex = int(box.cls)  # 获取检测到的目标类型编号
+            box_confidence = float(box.conf)  # 获取当前目标类型的置信度
+            # 获取检测结果坐标值
+            tensor_xywh = box.xywh  # 获取当前目标类型的检测框张量式xywh
+            xywhr = fun_tensor_to_xywhr(tensor_xywh)  # 将当前目标类型的检测框张量式xywh转换为字典式xywh
+
+            # 对每个检出目标进行判定
+            check_detected_result_and_judge(xywhr, clsIndex, box_confidence, product.component_box_list)
+
+    for component in product.component_box_list:
+        if component.judgement == False:
+            product.judgement = False
+
+# 将tensor格式的xywh转换为字典格式
+def fun_tensor_to_xywhr(tensor_data):
+    """将形如[[x, y, w, h]]的tensor解构为xywh格式的字典"""
+    # 确保输入是正确的形状
+    if tensor_data.dim() != 2 or tensor_data.shape[0] != 1 or tensor_data.shape[1] != 4:
+        raise ValueError("输入的tensor形状必须为[1, 4]")
+
+    # 提取值
+    center_x, center_y, width, height = tensor_data[0].tolist()
+
+    # 创建字典
+    xywhr = {
+        "center_x": center_x,
+        "center_y": center_y,
+        "width": width,
+        "height": height,
+        "angle": 0.0
     }
-}
+    return xywhr
+
+# 将xywhr结构参数变换为矩形左上 & 右下角顶点坐标值（浮点数形式）
+def fun_change_xywhr_to_corners_float(xywhr):
+    center_x = float(xywhr['center_x'])
+    center_y = float(xywhr['center_y'])
+    width = float(xywhr['width'])
+    height = float(xywhr['height'])
+    angle = float(xywhr['angle'])
+
+    x1 = float(center_x - width/2)
+    y1 = float(center_y - height/2)
+    x2 = float(center_x + width/2)
+    y2 = float(center_y + height/2)
+
+    return x1, y1, x2, y2
+
+def check_detected_result_and_judge(xywhr, clsIndex, box_confidence, component_box_list):
+    for component_box in component_box_list:
+        if component_box.classID == clsIndex and box_confidence >= component_box.confid_accept:
+            # 将获取标准模版的矩形角点坐标
+            model_x1, model_y1, model_x2, model_y2 = fun_change_xywhr_to_corners_float(component_box.xywhr_model)
+            # 判断检出目标是否在标准模板矩形框中
+
+            if model_x1 <= xywhr["center_x"] and model_y1 <= xywhr["center_y"] and xywhr["center_x"] <= model_x2 and xywhr["center_y"] <= model_y2:
+                component_box.judgement = True
+
+if __name__ == "__main__":
+    center_x_in = input("请输入零件中心点的X坐标：")
+    center_y_in = input("请输入零件中心点的Y坐标：")
+    center_w_in = input("请输入零件的宽度W：")
+    center_h_in = input("请输入零件的高度H：")
+
+    center_x_float = float(center_x_in)
+    center_y_float = float(center_y_in)
+    center_w_float = float(center_w_in)
+    center_h_float = float(center_h_in)
+
+    xywhr = {
+        "center_x": center_x_float,
+        "center_y": center_y_float,
+        "width": center_w_float,
+        "height": center_h_float,
+        "angle": 0.0
+    }
+
+    x1, y1, x2, y2 = fun_change_xywhr_to_corners_float(xywhr)
+
+    print("该工件的左上角和右下角坐标分别为：")
+    print(f"左上角坐标： ({x1}, {y1})")
+    print(f"右下角坐标： ({x2}, {y2})")

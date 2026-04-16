@@ -1,12 +1,18 @@
-// ReSharper disable all CheckNamespace
-// Please ensure all the tests are contained within the same namespace
+import sys
 
-[TestFixture]
-internal class Test
-{
-    [Test]
-    public void Test1()
-    {
-        Assert.Fail("Tests are not implemented");
-    }
-}
+from PyQt5.QtWidgets import QApplication
+
+from dialog_class import Example_Dialog_Class
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+
+    #实例化示例窗口
+    dlg_CameraLinkSet = Example_Dialog_Class()
+
+    #显示主窗口
+    dlg_CameraLinkSet.show()
+
+    print("检测工作站启动了！")
+
+    sys.exit(app.exec())

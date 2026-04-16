@@ -1,12 +1,89 @@
-// ReSharper disable all CheckNamespace
-// Please ensure all the tests are contained within the same namespace
+import cv2
+import numpy as np
+from PIL import Image, ImageFont, ImageDraw
+from PyQt5.QtGui import QImage, QPixmap
 
-[TestFixture]
-internal class Test
-{
-    [Test]
-    public void Test1()
-    {
-        Assert.Fail("Tests are not implemented");
-    }
-}
+
+def draw_result_image(product):
+    image_for_plot = product.image
+    result_box_color = None
+    result_label_color = None
+
+    # 遍历部件模板检测框，根据各检测框的判定结果绘制结果框
+    for component_box in product.component_box_list:
+        xywhr_for_draw = component_box.xywhr_model
+        x1_left_top, y1_left_top, x2_right_bottom, y2_right_bottom = change_xywhr_to_corners_int(xywhr_for_draw)
+        is_OK_or_NG = "OK" if component_box.judgement else "NG"
+        label_for_plot = f"{component_box.detectID}:{component_box.name} - {is_OK_or_NG}"
+        component_box.result_label = label_for_plot
+
+        # 指定绘制框的颜色
+        if component_box.judgement == True:
+            result_box_color = (0, 255, 0)
+            result_label_color = (0, 255, 0)
+        elif component_box.judgement == False:
+            result_box_color = (0, 0, 255)
+            result_label_color = (255, 0, 0)
+
+        # 绘制模板检测框的检测结果
+        cv2.rectangle(image_for_plot, (x1_left_top, y1_left_top), (x2_right_bottom, y2_right_bottom), result_box_color,
+                      5)
+        # 绘制结果的文字标签
+        image_for_plot = draw_Chinese_label_onto_image(image_for_plot, x1_left_top, y1_left_top, label_for_plot,
+                                                       result_label_color, )
+
+    result_image_qpixmap = cv2_image_to_qpixmap(image_for_plot)
+    product.result_image = result_image_qpixmap
+    return image_for_plot
+
+# 将xywh结构参数变换为矩形左上 & 右下角顶点坐标值（整数形式）
+def change_xywhr_to_corners_int(xywh):
+    center_x = float(xywh['center_x'])
+    center_y = float(xywh['center_y'])
+    width = float(xywh['width'])
+    height = float(xywh['height'])
+
+    x1 = int(center_x - width/2)
+    y1 = int(center_y - height/2)
+    x2 = int(center_x + width/2)
+    y2 = int(center_y + height/2)
+
+    return x1, y1, x2, y2
+
+# 在图片中绘制中文标签
+def draw_Chinese_label_onto_image(image_for_plot, x1_left_top, y1_left_top, label_for_plot, color, offset = 55):
+    # 转换为Pillow图像
+    img_pil = Image.fromarray(cv2.cvtColor(image_for_plot, cv2.COLOR_BGR2RGB))
+    # 加载字体
+    font = ImageFont.truetype("simsun.ttc", 50)  # 替换为实际的字体路径
+    # 在Pillow图像上绘制中文
+    draw = ImageDraw.Draw(img_pil)
+    draw.text((x1_left_top, y1_left_top - offset), label_for_plot, font = font, fill = color)
+    # 转换回OpenCV格式
+    image_for_plot = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+
+    return image_for_plot
+
+
+# 新增：将OpenCV图像转换为QPixmap的函数
+def cv2_image_to_qpixmap(cv2_image):
+    """
+    将OpenCV格式的图像转换为QPixmap对象
+    """
+    # 处理灰度图像的情况
+    if len(cv2_image.shape) == 2:
+        height, width = cv2_image.shape
+        bytes_per_line = width
+        # 灰度图像转换
+        q_image = QImage(cv2_image.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+    else:
+        # 彩色图像：先将BGR转换为RGB
+        height, width, channel = cv2_image.shape
+        bytes_per_line = channel * width
+        rgb_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
+        # 创建QImage
+        q_image = QImage(rgb_image.data, width, height, bytes_per_line, QImage.Format_RGB888)
+
+    # 将QImage转换为QPixmap
+    q_pixmap = QPixmap.fromImage(q_image)
+    return q_pixmap
