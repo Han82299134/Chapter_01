@@ -5,10 +5,10 @@ import os
 import cv2
 from ultralytics import YOLO
 
-folder_path= "../img"
+folder_path= "img"
 img_path = r'img\1_发动机缸盖_model_pic.jpg'
-YOLO_model_path = r'../YOLO_model/1_发动机缸盖_component_model.pt'
-component_box_path = r'../YOLO_model/1_发动机缸盖_component_box.json'
+YOLO_model_path = r'YOLO_model/1_发动机缸盖_component_model.pt'
+component_box_path = r'YOLO_model/1_发动机缸盖_component_box.json'
 
 def read_image():
     # 第一步：获取所有图片路径

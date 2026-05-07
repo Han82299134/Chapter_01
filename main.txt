@@ -2,16 +2,16 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from dialog_class import Example_Dialog_Class
+# from dialog_class import Example_Dialog_Class
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    #实例化示例窗口
-    dlg_CameraLinkSet = Example_Dialog_Class()
+    # #实例化示例窗口
+    # dlg_CameraLinkSet = Example_Dialog_Class()
 
-    #显示主窗口
-    dlg_CameraLinkSet.show()
+    # #显示主窗口
+    # dlg_CameraLinkSet.show()
 
     print("检测工作站启动了！")
 

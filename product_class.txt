@@ -1,6 +1,6 @@
 from file_IO import read_data_from_json
 
-component_box_path = r'../YOLO_model/1_发动机缸盖_component_box.json'
+component_box_path = r'YOLO_model/1_发动机缸盖_component_box.json'
 
 
 class Product():
