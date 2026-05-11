@@ -129,8 +129,8 @@ class Example_Dialog_Class(QWidget):
 
 
 if __name__ == "__main__":
-    # img_path = r'img\1_发动机缸盖_model_pic_1.jpg'
-    # YOLO_model_path = r'YOLO_model\1_发动机缸盖_component_model.pt'
+    # img_path = r'img/1_发动机缸盖_model_pic_1.jpg'
+    # YOLO_model_path = r'YOLO_model/1_发动机缸盖_component_model.pt'
     img_path = r'img/bird.jpeg'
     YOLO_model_path = r'YOLO_model/yolov8n.pt'
 

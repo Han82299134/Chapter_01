@@ -48,7 +48,7 @@ class Ui_Dialog_example(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.result_label = QtWidgets.QLabel(Dialog_example)
         self.result_label.setText("")
-        self.result_label.setPixmap(QtGui.QPixmap("../icon/OK.png"))
+        self.result_label.setPixmap(QtGui.QPixmap("icon/OK.png"))
         self.result_label.setScaledContents(True)
         self.result_label.setAlignment(QtCore.Qt.AlignCenter)
         self.result_label.setObjectName("result_label")
